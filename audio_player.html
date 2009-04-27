@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <script type="text/javascript" src="lib/soundmanager2.js"></script>
+    
+    <script type="text/javascript">
+      soundManager.url = 'lib/'; // directory where SM2 .SWFs live
+      soundManager.debugMode = true;
+
+      var sound;
+      function play() {
+          sound = soundManager.createSound({
+              id: 'aSound',
+              url: 'music/FunkyStuff.mp3',
+              // onload: [ event handler function object ],
+              // other options here
+          });
+          sound.play();
+       }
+       
+       function stop() {
+          sound.stop();
+       }
+  
+  </script>
+  </head>
+  <body>
+    <a href="#" onclick="play();">Play</a>
+    <a href="#" onclick="stop();">Stop</a>  
+  
+  </body>
+</html>
