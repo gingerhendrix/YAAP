@@ -8,10 +8,24 @@
       soundManager.debugMode = true;
       soundManager.onload = function(){ 
         window.setTimeout(function(){
-          audioPlayer = new AudioPlayer({url : 'music/FunkyStuff.mp3'});
+          audioPlayer = new AudioPlayer({playlist : playlist});
           audioPlayer.replaceElement(document.getElementById("player"));
         }, 1); //Get out of flash External Interface callback
       };
+      
+      var playlist = [{ 
+                        url : 'music/FunkyStuff.mp3',
+                        title : "Funky Stuff",
+                        artist : "Lizzy Mercier Descloux",
+                        duration : ((4*60)+8)*1000
+                      },
+                      { 
+                        url : 'music/wawa.mp3',
+                        title : "Wawa",
+                        artist : "Lizzy Mercier Descloux",
+                        duration : ((2*60)+31)*1000
+                      },
+                     ]
       
       var audioPlayer;
       var timeRemaining = false;
@@ -22,16 +36,27 @@
         var id = 0;
         var self = this;
         var controls = {};
+        var current;
+        var currentIdx = 0;
+        var playlist;
+        var tracks;
         
         this.play = function(){
+          if(sound && sound.sId != "sound_"+currentIdx){
+            sound.stop();
+            sound.unload();
+            sound = false;
+          }
           if(!sound){
             sound = soundManager.createSound({
-              id: "sound_" + id++,
-              url: url,
+              id: "sound_" + currentIdx,
+              url: current.url,
               onload: this.onload,
               whileplaying : this.whileplaying
             });
           }
+          tracks.forEach(function(track){  track.style.color = "#666" });
+          tracks[currentIdx].style.color = "#000";
           sound.play();
         }
         
@@ -100,7 +125,8 @@
           }
         }
         
-        this.createAudioPlayer = function(){
+        this.createControls = function(){
+         
           controls['play'] = $E({
                 tag:'img',
                 className:'play',
@@ -147,15 +173,43 @@
              className:'time',
              onclick: this.toggleTime
            });
-           
+        }
+        
+        this.selectTrack = function(track, idx){
+            currentIdx = idx;
+            current = track;
+            self.play();
+        }
+        
+        this.createPlaylist = function(){
+          tracks = (options.playlist || [options.track]).map(function(track, idx){
+              return $E({
+                 tag: 'div',
+                 className : 'track',
+                 children : [{tag: 'span', className : 'title', children : track.title},
+                             {tag: 'span', className : 'artist', children : track.artist},
+                             {tag: 'span', className : 'duration', children : strTime(track.duration)}],
+                 onclick : function(){ self.selectTrack(track, idx); }
+              });
+          });
+          playlist = $E({
+            tag: 'div',
+            className : 'playlist',
+            children : tracks
+          });
+        }
+        
+        this.createAudioPlayer = function(){
+          this.createControls();          
+          this.createPlaylist();
           var element=  $E({
             tag:'div',  
             className:'audio_player',
-            children:{
+            children:[{
               tag:'div',
               className:'controls',
               children: [controls.stop, controls.play, controls.progress, controls.ffwd, controls.rewind, controls.time]
-            }
+            }, playlist ]
           });
           return element;
         }
@@ -166,7 +220,12 @@
         }
         
         this.init = function(){
-          url = options['url']          
+          if(options['track']){
+            current = options['track']          
+          }else if(options['playlist']){
+            currentIdx = 0;
+            current = options['playlist'][0];
+          }
         }
         this.init();
       }
@@ -215,8 +274,6 @@
       background-color: #33cc33;
     }
     
-
-    
     .audio_player .controls .time{
       float: right;
       font-size: 8pt;
@@ -233,6 +290,35 @@
     .audio_player .controls .rewind{
       float: right;
     }
+    
+    .audio_player .playlist{
+      width: 250px;
+      margin-left: 32px;
+    }
+    .audio_player .playlist .track{
+      clear: left;
+      color: #666;
+    }
+    
+    .audio_player .track .title {
+       float: left;
+       width: 100px;
+       font-size: 8pt;
+       font-family: arial;
+    }
+    
+    .audio_player .track .artist {
+        display: none;
+    }
+    
+    .audio_player .track .duration {
+       float: right;
+       width: 40px;
+       font-size: 7pt;
+       font-family: arial;
+    }
+
+
 
     
     #soundmanager-debug{
