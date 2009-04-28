@@ -1,31 +1,254 @@
 <html>
   <head>
     <script type="text/javascript" src="lib/soundmanager2.js"></script>
+    <script type="text/javascript" src="lib/dollar-e.js"></script>
     
     <script type="text/javascript">
       soundManager.url = 'lib/'; // directory where SM2 .SWFs live
       soundManager.debugMode = true;
-
-      var sound;
-      function play() {
-          sound = soundManager.createSound({
-              id: 'aSound',
-              url: 'music/FunkyStuff.mp3',
-              // onload: [ event handler function object ],
-              // other options here
-          });
-          sound.play();
-       }
+      soundManager.onload = function(){ 
+        window.setTimeout(function(){
+          audioPlayer = new AudioPlayer({url : 'music/FunkyStuff.mp3'});
+          audioPlayer.replaceElement(document.getElementById("player"));
+        }, 1); //Get out of flash External Interface callback
+      };
+      
+      var audioPlayer;
+      var timeRemaining = false;
        
-       function stop() {
-          sound.stop();
-       }
-  
+      function AudioPlayer(options){
+        var sound;
+        var url;
+        var id = 0;
+        var self = this;
+        var controls = {};
+        
+        this.play = function(){
+          if(!sound){
+            sound = soundManager.createSound({
+              id: "sound_" + id++,
+              url: url,
+              onload: this.onload,
+              whileplaying : this.whileplaying
+            });
+          }
+          sound.play();
+        }
+        
+        function strTime(time){
+          var secs = Math.floor(time/1000);
+          var mins = Math.floor(secs/60);
+          var remainingSecs = secs - (mins*60);
+          remainingSecs = remainingSecs<10 ? "0" + remainingSecs.toString() : remainingSecs.toString();
+          
+          return mins + ":" + remainingSecs;
+        }
+        
+        this.onload = function(){
+          controls['time'].innerHTML = strTime(sound.duration);
+        }
+        
+        this.whileplaying = function(){
+          if(timeRemaining){
+            controls['time'].innerHTML = strTime(sound.duration - sound.position);
+          }else{
+            controls['time'].innerHTML = strTime(sound.position);
+          }
+          controls['progressBar'].style.width = Math.floor((sound.position/sound.duration)*100) + "%";
+        }
+        
+        this.pause = function(){
+          sound.pause();
+        }
+        
+        this.resume = function(){
+          sound.resume();
+        }
+        
+        this.toggleTime = function(){
+          timeRemaining = !timeRemaining;
+          self.whileplaying();
+        }
+        
+        this.ffwd = function(){
+          sound.setPosition(sound.position + 5000);
+        }
+        
+        this.rewind = function(){
+          sound.setPosition(sound.position - 5000);
+        }
+        
+        this.togglePause = function(){
+          if(!sound  || sound.playState == 0){
+            controls['play'].setAttribute("src", "assets/icons/control_pause_blue.png");          
+            self.play();
+          }else if(sound && !sound.paused){
+            controls['play'].setAttribute("src", "assets/icons/control_play_blue.png");
+            self.pause();
+          }else{
+            controls['play'].setAttribute("src", "assets/icons/control_pause_blue.png");
+            self.resume();
+          }
+        }
+        
+        this.stop = function(){
+          controls['play'].setAttribute("src", "assets/icons/control_play_blue.png");
+          if(sound){
+            sound.setPosition(0);
+            sound.stop();
+            window.setTimeout(self.whileplaying, 10);
+          }
+        }
+        
+        this.createAudioPlayer = function(){
+          controls['play'] = $E({
+                tag:'img',
+                className:'play',
+                src : "assets/icons/control_play_blue.png",
+                width : 16,
+                height : 16,
+                onclick : this.togglePause
+              });
+          controls['stop'] = $E({
+                tag:'img',
+                className:'stop',
+                src : "assets/icons/control_stop_blue.png",
+                width : 16,
+                height : 16,
+                onclick : this.stop
+              });
+          controls['ffwd'] = $E({
+                tag:'img',
+                className:'ffwd',
+                src : "assets/icons/control_fastforward_blue.png",
+                width : 16,
+                height : 16,
+                onclick : this.ffwd
+              });
+          controls['rewind'] = $E({
+                tag:'img',
+                className:'rewind',
+                src : "assets/icons/control_rewind_blue.png",
+                width : 16,
+                height : 16,
+                onclick : this.rewind
+           });
+           controls['progressBar'] = $E({
+             tag: 'div',
+             className: 'progressBar'
+           });
+           controls['progress'] = $E({
+                tag:'div',
+                className:'progress',
+                children : controls['progressBar']
+           });
+           controls['time'] = $E({
+             tag: 'span',
+             className:'time',
+             onclick: this.toggleTime
+           });
+           
+          var element=  $E({
+            tag:'div',  
+            className:'audio_player',
+            children:{
+              tag:'div',
+              className:'controls',
+              children: [controls.stop, controls.play, controls.progress, controls.ffwd, controls.rewind, controls.time]
+            }
+          });
+          return element;
+        }
+        
+        this.replaceElement = function(el){
+          this.element = this.createAudioPlayer();
+          el.parentNode.replaceChild(this.element, el);
+        }
+        
+        this.init = function(){
+          url = options['url']          
+        }
+        this.init();
+      }
+       
+       
   </script>
+  <style>
+    .audio_player a{
+      border: 0px;
+    }
+
+    .audio_player a img{
+      border: 0px;
+    }
+    
+    .audio_player a:focus{
+      border: 0px;
+      outline: 0px;
+    }
+    
+    .audio_player .controls{
+      width: 300px;
+    }
+    
+    .audio_player .controls .stop{
+      float: left;
+    }
+    
+    .audio_player .controls .play{
+      float: left;
+    }
+    
+    .audio_player .controls .progress{
+      float: left;
+      width: 200px;
+      height: 3px;
+      margin-top: 5px;
+      border-top: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;      
+      margin-left: 2px;
+    }
+
+    .audio_player .controls .progressBar{
+      width: 1px;
+      height: 3px;
+      background-color: #33cc33;
+    }
+    
+
+    
+    .audio_player .controls .time{
+      float: right;
+      font-size: 8pt;
+      font-family: arial;
+      height: 16px;
+      line-height: 16px;
+      margin-right: 2px;
+    }
+    
+    .audio_player .controls .ffwd{
+      float: right;
+    }
+    
+    .audio_player .controls .rewind{
+      float: right;
+    }
+
+    
+    #soundmanager-debug{
+      font-size: 9pt;
+      font-family: courier;
+      width: 500px;
+      height: 300px;
+      position: fixed;
+      bottom: 0px;
+      right: 0px;
+      overflow-y: scroll;
+    }
+  </style>
   </head>
   <body>
-    <a href="#" onclick="play();">Play</a>
-    <a href="#" onclick="stop();">Stop</a>  
-  
+    <div id="player">
+    </div>
   </body>
 </html>
